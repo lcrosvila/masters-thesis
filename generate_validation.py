@@ -22,5 +22,5 @@ val_Y = train['Y'][indices[split:]]
 print(np.unique(np.argmax(train_Y, axis=1)))
 print(np.unique(np.argmax(val_Y, axis=1)))
 
-np.savez('train.npz', sample_key=np.asarray(train_sample_key), path=np.asarray(train_paths), Y=np.asarray(train_Y))
-np.savez('validation.npz', sample_key=np.asarray(val_sample_key), path=np.asarray(val_paths), Y=np.asarray(val_Y))
+np.savez('data/train.npz', sample_key=np.asarray(train_sample_key), path=np.asarray(train_paths), Y=np.asarray(train_Y))
+np.savez('data/validation.npz', sample_key=np.asarray(val_sample_key), path=np.asarray(val_paths), Y=np.asarray(val_Y))

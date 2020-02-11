@@ -3,7 +3,7 @@ import sys
 import numpy as np
 import random
 
-directory = '/home/laura/monophonic/data/Essid/Essid'
+directory = '/home/laura/Essid/Essid'
 subdir = [x[0] for x in os.walk(directory)]
 
 instrument = 0
@@ -38,8 +38,8 @@ for dir in subdir:
         
         instrument += 1
 
-print(np.unique(np.argmax(train_Y, axis=1)))
-print(np.unique(np.argmax(test_Y, axis=1)))
+print(np.unique(np.argmax(train_labels, axis=1)))
+print(np.unique(np.argmax(test_labels, axis=1)))
 
-np.savez('train.npz', sample_key=np.asarray(train_sample_key), path=np.asarray(train_paths), Y=np.asarray(train_labels))
-np.savez('test.npz', sample_key=np.asarray(test_sample_key), path=np.asarray(test_paths), Y=np.asarray(test_labels))
+np.savez('data/train.npz', sample_key=np.asarray(train_sample_key), path=np.asarray(train_paths), Y=np.asarray(train_labels))
+np.savez('data/test.npz', sample_key=np.asarray(test_sample_key), path=np.asarray(test_paths), Y=np.asarray(test_labels))
