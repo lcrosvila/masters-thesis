@@ -113,7 +113,7 @@ for epoch in range(max_epoch):
         running_corrects += torch.sum(preds == labels)
     
     epoch_loss = running_loss / train_dataset.__len__()
-    epoch_acc = running_corrects.float() / train_dataset.__len__()
+    epoch_acc = running_corrects.float() / val_dataset.__len__()
     logs[epoch] = [epoch_loss, epoch_acc.item()]
     
     is_best = epoch_acc > best_acc
