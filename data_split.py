@@ -20,7 +20,7 @@ for dir in subdir:
         label[instrument] = 1
         files =  [f for f in os.listdir(dir) if f.endswith('.wav')]
 
-        split = round(len(files)*0.8)
+        split = round(len(files)*0.6)
         random.shuffle(files)
 
         train = files[:split]
@@ -41,5 +41,5 @@ for dir in subdir:
 print(np.unique(np.argmax(train_labels, axis=1)))
 print(np.unique(np.argmax(test_labels, axis=1)))
 
-np.savez('data/train.npz', sample_key=np.asarray(train_sample_key), path=np.asarray(train_paths), Y=np.asarray(train_labels))
-np.savez('data/test.npz', sample_key=np.asarray(test_sample_key), path=np.asarray(test_paths), Y=np.asarray(test_labels))
+np.savez('/home/laura/monophonic/data/train.npz', sample_key=np.asarray(train_sample_key), path=np.asarray(train_paths), Y=np.asarray(train_labels))
+np.savez('/home/laura/monophonic/data/test.npz', sample_key=np.asarray(test_sample_key), path=np.asarray(test_paths), Y=np.asarray(test_labels))
