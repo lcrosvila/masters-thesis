@@ -232,12 +232,11 @@ class Cnn14_scatter(nn.Module):
     def forward(self, input):
         """
         Input: (batch_size, data_length)"""
-
         x = self.scatter(input)
         x = x.transpose(1, 3)
         x = self.bn0(x)
         x = x.transpose(1, 3)
-        
+
         x = self.conv_block1(x, pool_size=(2, 2), pool_type='avg')
         x = F.dropout(x, p=0.2, training=self.training)
         x = self.conv_block2(x, pool_size=(2, 2), pool_type='avg')
