@@ -67,41 +67,33 @@ def get_logmel(x):
 scatter_type = "9_8_132300"
 
 scatter_path = "/home/laura/MedleyDB/processed/" + scatter_type
-spec_path = "/home/laura/MedleyDB/processed/spec"
+logmel_path = "/home/laura/MedleyDB/processed/logmel"
 
 
-def f(directories):
-    for split in directories:
-        processed_path = os.path.join(scatter_path, split)
-        save_path = os.path.join(spec_path, split + "/input")
+def f(files):
+    save_path = os.path.join(logmel_path, "input")
 
-        files = os.listdir(os.path.join(processed_path, "input/"))
-        for file in files:
-            sample_name = file[:-4]
+    for file in files:
+        sample_name = file[:-4]
 
-            start = int(sample_name.split("_")[2]) * 22050
+        start = int(sample_name.split("_")[2]) * 22050
 
-            wav_name = (
-                sample_name.split("_")[0] + "_" + sample_name.split("_")[1] + "_MIX.wav"
-            )
+        wav_name = (
+            sample_name.split("_")[0] + "_" + sample_name.split("_")[1] + "_MIX.wav"
+        )
 
-            audio_path = os.path.join("/home/laura/MedleyDB/Audio/", wav_name)
-            target_path = os.path.join(processed_path, "labels/" + file)
+        audio_path = os.path.join("/home/laura/MedleyDB/Audio/", wav_name)
 
-            target = np.load(target_path, allow_pickle=True)
-            target = target.astype("float32")
+        y, _ = librosa.load(audio_path, sr=22050, res_type="kaiser_fast")
+        waveform = y[start : start + 6 * 22050]
 
-            y, _ = librosa.load(audio_path, sr=22050, res_type="kaiser_fast")
-            waveform = y[start : start + 6 * 22050]
+        logmel = get_logmel(waveform)
 
-            logmel = get_logmel(waveform)
-
-            print(file)
-            np.save(os.path.join(save_path, file), logmel)
+        np.save(os.path.join(save_path, file), logmel)
 
 
 if __name__ == "__main__":
-    directories = ["train", "val", "test"]
-    p = Process(target=f, args=(directories,))
+    files = os.listdir(os.path.join(scatter_path, "input/"))
+    p = Process(target=f, args=(files,))
     p.start()
     p.join()

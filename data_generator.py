@@ -6,7 +6,6 @@ import csv
 import time
 import logging
 import librosa
-import soundfile as sf
 
 class monoDataset(object):
     def __init__(self, npz_path, audio_length, classes_num):

@@ -9,7 +9,7 @@ from skmultilearn.model_selection.measures import get_combination_wise_output_ma
 from skmultilearn.model_selection import iterative_train_test_split
 from collections import Counter
 
-scatter_type = "9_8_132300"
+scatter_type = "logmel"
 
 input_dir = "/home/laura/MedleyDB/processed/" + scatter_type + "/input"
 files = os.listdir(input_dir)
@@ -41,6 +41,15 @@ X_train, y_train, X_val, y_val = iterative_train_test_split(
 train_files = []
 train_dir = "/home/laura/MedleyDB/processed/" + scatter_type + "/train/"
 
+if not os.path.exists(train_dir):
+    os.mkdir(train_dir)
+
+if not os.path.exists(os.path.join(train_dir, "input")):
+    os.mkdir(os.path.join(train_dir, "input"))
+
+if not os.path.exists(os.path.join(train_dir, "labels")):
+    os.mkdir(os.path.join(train_dir, "labels"))
+
 for i in range(X_train.shape[0]):
     file = int_to_file[int(X_train[i, 0])]
     train_files.append(file)
@@ -54,6 +63,15 @@ for i in range(X_train.shape[0]):
 val_files = []
 val_dir = "/home/laura/MedleyDB/processed/" + scatter_type + "/val/"
 
+if not os.path.exists(val_dir):
+    os.mkdir(val_dir)
+
+if not os.path.exists(os.path.join(val_dir, "input")):
+    os.mkdir(os.path.join(val_dir, "input"))
+
+if not os.path.exists(os.path.join(val_dir, "labels")):
+    os.mkdir(os.path.join(val_dir, "labels"))
+
 for i in range(X_val.shape[0]):
     file = int_to_file[int(X_val[i, 0])]
     val_files.append(file)
@@ -66,6 +84,15 @@ for i in range(X_val.shape[0]):
 
 test_files = []
 test_dir = "/home/laura/MedleyDB/processed/" + scatter_type + "/test/"
+
+if not os.path.exists(test_dir):
+    os.mkdir(test_dir)
+
+if not os.path.exists(os.path.join(test_dir, "input")):
+    os.mkdir(os.path.join(test_dir, "input"))
+
+if not os.path.exists(os.path.join(test_dir, "labels")):
+    os.mkdir(os.path.join(test_dir, "labels"))
 
 for i in range(X_test.shape[0]):
     file = int_to_file[int(X_test[i, 0])]
