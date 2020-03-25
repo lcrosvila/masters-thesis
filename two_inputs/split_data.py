@@ -239,10 +239,9 @@ def split_scikit(scatter_type="logmel"):
 if __name__ == "__main__":
     balanced = False
     scatter_type = "9_8_132300"
-    high_limit = 37
-    random_seed = 3531
+    high_limit = 30
+    random_seed = 0
     while not balanced:
-        print(random_seed)
         train_files, val_files, test_files = get_split_samples(
             scatter_type=scatter_type, random_seed=random_seed
         )
@@ -267,5 +266,3 @@ if __name__ == "__main__":
         val=val_files,
         test=test_files,
     )
-    print(random_seed - 1)
-    print(high_limit)
