@@ -8,8 +8,10 @@ import time
 import logging
 import librosa
 import torch
+import matplotlib.pyplot as plt
 
 eps = sys.float_info.epsilon
+
 
 def get_mean_var(processed_path):
     scatter_type = processed_path.split("/")[5]
