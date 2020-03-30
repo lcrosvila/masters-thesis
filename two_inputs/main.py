@@ -232,5 +232,9 @@ while not early_stop:
     )
 
     model.train()
+<<<<<<< HEAD
 
+=======
+    
+>>>>>>> e069867e7a2a5bfa53d865ff3bacc14d92643df3
     epoch += 1
