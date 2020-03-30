@@ -1,7 +1,6 @@
 import os
 import sys
 
-%matplotlib inline
 import time
 import pylab as pl
 from IPython import display
