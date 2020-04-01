@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import math
+import matplotlib.pyplot as plt
 
 from stft import Spectrogram, LogmelFilterBank
 from augmentation import SpecAugmentation
@@ -133,38 +134,50 @@ class CNN_two(nn.Module):
         )
 
         self.conv_block1 = ConvBlock5x5(
-            in_channels=1, out_channels=32, kernel_size=(3, 3)
+            in_channels=1, out_channels=32, kernel_size=(5, 5)
         )
+
+        channels1 = [32*2**i for i in range(depth1 - 1)]
+        for i in range(len(channels1)):
+            if channels1[i]>256:
+                channels1[i]=256
+
         self.conv_list1 = nn.ModuleList(
             [
                 ConvBlock5x5(
-                    in_channels=32 * 2 ** i,
-                    out_channels=32 * 2 ** (i + 1),
-                    kernel_size=(3, 3),
+                    in_channels=channels1[i],
+                    out_channels=channels1[i + 1],
+                    kernel_size=(5, 5),
                 )
-                for i in range(depth1 - 1)
+                for i in range(len(channels1)-1)
             ]
         )
 
         self.conv_block2 = ConvBlock5x5(
-            in_channels=1, out_channels=32, kernel_size=(1, 3)
+            in_channels=1, out_channels=32, kernel_size=(1, 5)
         )
+
+        channels2 = [32*2**i for i in range(depth2 - 1)]
+        for i in range(len(channels2)):
+            if channels2[i]>256:
+                channels2[i]=256
+
         self.conv_list2 = nn.ModuleList(
             [
                 ConvBlock5x5(
-                    in_channels=32 * 2 ** i,
-                    out_channels=32 * 2 ** (i + 1),
-                    kernel_size=(1, 3),
+                    in_channels=channels2[i],
+                    out_channels=channels2[i + 1],
+                    kernel_size=(1, 5),
                 )
-                for i in range(depth2 - 1)
+                for i in range(len(channels2)-1)
             ]
         )
 
         self.fc1 = nn.Linear(
-            32 * 2 ** (depth1 - 1) + 32 * 2 ** (depth2 - 1), 512, bias=True
+            channels1[-1] + channels2[-1], 256, bias=True
         )
-        self.bn0 = nn.BatchNorm1d(512)
-        self.fc_medley = nn.Linear(512, classes_num, bias=True)
+        self.bn0 = nn.BatchNorm1d(256)
+        self.fc_medley = nn.Linear(256, classes_num, bias=True)
 
         self.init_weight()
 
@@ -173,7 +186,7 @@ class CNN_two(nn.Module):
         init_layer(self.fc1)
         init_layer(self.fc_medley)
 
-    def forward(self, input1, input2):
+    def forward(self, input1, input2, plot=False):
         """
         Input: (batch_size, data_length)"""
 
@@ -182,15 +195,42 @@ class CNN_two(nn.Module):
 
         x2 = input2.view(input2.shape[0], 1, input2.shape[1], input2.shape[2])
 
+        if plot:
+            plt.title("First order input")
+            plt.imshow(x1[0, 0, :, :].cpu().detach().numpy(), aspect="auto")
+            plt.show()
         x1 = self.conv_block1(x1, pool_size=(2, 2), pool_type="avg")
 
+        if plot:
+            plt.title("First order after conv block 1")
+            plt.imshow(x1[0, 0, :, :].cpu().detach().numpy(), aspect="auto")
+            plt.show()
         for i, c in enumerate(self.conv_list1):
             x1 = c(x1, pool_size=(2, 2), pool_type="avg")
+            if plot:
+                title = "First order after conv block " + str(i + 2)
+                plt.title(title)
+                plt.imshow(x1[0, 0, :, :].cpu().detach().numpy(), aspect="auto")
+                plt.show()
+
+        if plot:
+            plt.title("Second order input")
+            plt.imshow(x2[0, 0, :, :].cpu().detach().numpy(), aspect="auto")
+            plt.show()
 
         x2 = self.conv_block2(x2, pool_size=(2, 2), pool_type="avg")
+        if plot:
+            plt.title("Second order after conv block 1")
+            plt.imshow(x2[0, 0, :, :].cpu().detach().numpy(), aspect="auto")
+            plt.show()
 
         for i, c in enumerate(self.conv_list2):
             x2 = c(x2, pool_size=(2, 2), pool_type="avg")
+            if plot:
+                title = "Second order after conv block " + str(i + 2)
+                plt.title(title)
+                plt.imshow(x2[0, 0, :, :].cpu().detach().numpy(), aspect="auto")
+                plt.show()
 
         x1 = torch.mean(x1, dim=3)
         (x11, _) = torch.max(x1, dim=2)
