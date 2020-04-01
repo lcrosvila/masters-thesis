@@ -9,5 +9,16 @@ def macro_f1(batches_target, batches_pred):
     print("Macro F1", macro_f1)
     return macro_f1
 
+
+def instrument_f1(batches_target, batches_pred):
+    instrument_f1 = []
+    for i in range(len(batches_target[0])):
+        target_instr = [sample[i] for sample in batches_target]
+        pred_instr = [sample[i] for sample in batches_pred]
+        instrument_f1.append(f1_score(target_instr, pred_instr))
+
+    return instrument_f1
+
+
 def auc_score():
     return None
