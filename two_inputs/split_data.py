@@ -11,6 +11,8 @@ import pandas as pd
 from skmultilearn.model_selection.measures import get_combination_wise_output_matrix
 from skmultilearn.model_selection import iterative_train_test_split
 from collections import Counter
+import multiprocessing as mp
+from tqdm import tqdm
 
 
 def songwise_split(split=0.8, random_seed=None):
@@ -131,6 +133,10 @@ def is_balanced(
             balanced = False
             break
 
+    if balanced:
+        print("count val 0", count_val_0)
+        print("count test 0", count_test_0)
+
     return balanced
 
 
@@ -236,28 +242,35 @@ def split_scikit(scatter_type="logmel"):
     )
 
 
-if __name__ == "__main__":
-    balanced = False
+def f(random_seeds, high_limits):
     scatter_type = "9_8_132300"
-    high_limit = 30
-    random_seed = 0
-    while not balanced:
-        train_files, val_files, test_files = get_split_samples(
-            scatter_type=scatter_type, random_seed=random_seed
-        )
-        balanced = is_balanced(
-            train_files,
-            val_files,
-            test_files,
-            high_limit=high_limit,
-            scatter_type=scatter_type,
-        )
-        random_seed += 1
+    balanced = False
 
-        if random_seed > 5000:
-            high_limit = high_limit + 1
-            random_seed = 0
+    for high_limit in tqdm(high_limits, unit="lim"):
+        if os.path.exists("/home/laura/MedleyDB/processed/" + scatter_type + "/data_split.npz"):
+            break
 
+        print("high_limit", high_limit)
+        for random_seed in tqdm(random_seeds, unit="seed"):
+            train_files, val_files, test_files = get_split_samples(
+                scatter_type=scatter_type, random_seed=random_seed
+            )
+            balanced = is_balanced(
+                train_files,
+                val_files,
+                test_files,
+                high_limit=high_limit,
+                scatter_type=scatter_type,
+            )
+
+            if balanced:
+                print("balanced!")
+                break
+        if balanced:
+            break
+
+    print(random_seed)
+    print(high_limit)
     np.savez(
         "/home/laura/MedleyDB/processed/" + scatter_type + "/data_split.npz",
         high_limit=high_limit,
@@ -266,3 +279,18 @@ if __name__ == "__main__":
         val=val_files,
         test=test_files,
     )
+
+
+if __name__ == "__main__":
+    processes = []
+
+    high_limits = [i for i in range(45, 60)]
+
+    for i in range(mp.cpu_count()):
+        random_seeds = [i for i in range(625 * i, 625 * (i + 1))]
+        p = mp.Process(target=f, args=(random_seeds, high_limits,))
+        p.start()
+        processes.append(p)
+
+    for p in processes:
+        p.join()
