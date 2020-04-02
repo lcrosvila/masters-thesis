@@ -176,17 +176,15 @@ class CNN_two(nn.Module):
         self.fc1 = nn.Linear(
             channels1[-1] + channels2[-1], 256, bias=True
         )
-        self.bn0 = nn.BatchNorm1d(256)
         self.fc_medley = nn.Linear(256, classes_num, bias=True)
 
         self.init_weight()
 
     def init_weight(self):
-        init_bn(self.bn0)
         init_layer(self.fc1)
         init_layer(self.fc_medley)
 
-    def forward(self, input1, input2, plot=False):
+    def forward(self, input1, input2, plot=False, dropout=False):
         """
         Input: (batch_size, data_length)"""
 
@@ -200,6 +198,9 @@ class CNN_two(nn.Module):
             plt.imshow(x1[0, 0, :, :].cpu().detach().numpy(), aspect="auto")
             plt.show()
         x1 = self.conv_block1(x1, pool_size=(2, 2), pool_type="avg")
+        
+        if dropout:
+            x1 = F.dropout(x1, p=0.5, training=self.training)
 
         if plot:
             plt.title("First order after conv block 1")
@@ -207,6 +208,8 @@ class CNN_two(nn.Module):
             plt.show()
         for i, c in enumerate(self.conv_list1):
             x1 = c(x1, pool_size=(2, 2), pool_type="avg")
+            if dropout:
+                x1 = F.dropout(x1, p=0.5, training=self.training)
             if plot:
                 title = "First order after conv block " + str(i + 2)
                 plt.title(title)
@@ -219,6 +222,8 @@ class CNN_two(nn.Module):
             plt.show()
 
         x2 = self.conv_block2(x2, pool_size=(2, 2), pool_type="avg")
+        if dropout:
+            x2 = F.dropout(x2, p=0.5, training=self.training)
         if plot:
             plt.title("Second order after conv block 1")
             plt.imshow(x2[0, 0, :, :].cpu().detach().numpy(), aspect="auto")
@@ -226,6 +231,8 @@ class CNN_two(nn.Module):
 
         for i, c in enumerate(self.conv_list2):
             x2 = c(x2, pool_size=(2, 2), pool_type="avg")
+            if dropout:
+                x2 = F.dropout(x2, p=0.5, training=self.training)
             if plot:
                 title = "Second order after conv block " + str(i + 2)
                 plt.title(title)
@@ -243,12 +250,16 @@ class CNN_two(nn.Module):
         x2 = x21 + x22
 
         x = torch.cat((x1, x2), 1)
+        
+        if dropout:
+            x = F.dropout(x, p=0.5, training=self.training)
 
         embedding = F.relu(self.fc1(x))
+        
+        if dropout:
+            embedding = F.dropout(embedding, p=0.5, training=self.training)
 
-        x = self.bn0(embedding)
-
-        clipwise_output = torch.sigmoid(self.fc_medley(x))
+        clipwise_output = torch.sigmoid(self.fc_medley(embedding))
 
         output_dict = {"clipwise_output": clipwise_output, "embedding": embedding}
 
