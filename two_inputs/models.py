@@ -134,13 +134,13 @@ class CNN_two(nn.Module):
         )
 
         self.conv_block1 = ConvBlock5x5(
-            in_channels=1, out_channels=32, kernel_size=(5, 5)
+            in_channels=1, out_channels=64, kernel_size=(5, 5)
         )
 
-        channels1 = [32*2**i for i in range(depth1 - 1)]
+        channels1 = [32*2**(i+1) for i in range(depth1 - 1)]
         for i in range(len(channels1)):
-            if channels1[i]>256:
-                channels1[i]=256
+            if channels1[i]>512:
+                channels1[i]=512
 
         self.conv_list1 = nn.ModuleList(
             [
@@ -154,13 +154,13 @@ class CNN_two(nn.Module):
         )
 
         self.conv_block2 = ConvBlock5x5(
-            in_channels=1, out_channels=32, kernel_size=(1, 5)
+            in_channels=1, out_channels=64, kernel_size=(1, 5)
         )
 
-        channels2 = [32*2**i for i in range(depth2 - 1)]
+        channels2 = [32*2**(i+1) for i in range(depth2 - 1)]
         for i in range(len(channels2)):
-            if channels2[i]>256:
-                channels2[i]=256
+            if channels2[i]>512:
+                channels2[i]=512
 
         self.conv_list2 = nn.ModuleList(
             [
