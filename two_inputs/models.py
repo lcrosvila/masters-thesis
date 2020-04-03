@@ -176,13 +176,13 @@ class CNN_two(nn.Module):
         self.fc1 = nn.Linear(
             channels1[-1] + channels2[-1], 256, bias=True
         )
-        self.fc_medley = nn.Linear(256, classes_num, bias=True)
+        self.fc_out = nn.Linear(256, classes_num, bias=True)
 
         self.init_weight()
 
     def init_weight(self):
         init_layer(self.fc1)
-        init_layer(self.fc_medley)
+        init_layer(self.fc_out)
 
     def forward(self, input1, input2, plot=False, dropout=False):
         """
@@ -259,7 +259,7 @@ class CNN_two(nn.Module):
         if dropout:
             embedding = F.dropout(embedding, p=0.5, training=self.training)
 
-        clipwise_output = torch.sigmoid(self.fc_medley(embedding))
+        clipwise_output = torch.sigmoid(self.fc_out(embedding))
 
         output_dict = {"clipwise_output": clipwise_output, "embedding": embedding}
 
@@ -267,20 +267,20 @@ class CNN_two(nn.Module):
 
 
 class Cnn6(nn.Module):
-    def __init__(self, classes_num, time_steps, freq_bins, spec_aug=True):
+    def __init__(self, classes_num, time_steps, freq_bins, spec_aug=False):
 
         super(Cnn6, self).__init__()
 
         # Spec augmenter
         self.spec_aug = spec_aug
-        self.spec_augmenter = SpecAugmentation(
-            time_drop_width=64,
-            time_stripes_num=2,
-            freq_drop_width=8,
-            freq_stripes_num=2,
-        )
-
-        self.bn0 = nn.BatchNorm2d(freq_bins)
+        
+        if self.spec_aug:
+            self.spec_augmenter = SpecAugmentation(
+                time_drop_width=64,
+                time_stripes_num=2,
+                freq_drop_width=8,
+                freq_stripes_num=2,
+            )
 
         self.conv_block1 = ConvBlock5x5(in_channels=1, out_channels=64)
         self.conv_block2 = ConvBlock5x5(in_channels=64, out_channels=128)
@@ -288,23 +288,19 @@ class Cnn6(nn.Module):
         self.conv_block4 = ConvBlock5x5(in_channels=256, out_channels=512)
 
         self.fc1 = nn.Linear(512, 512, bias=True)
-        self.fc_openmic = nn.Linear(512, classes_num, bias=True)
+        self.fc_out = nn.Linear(512, classes_num, bias=True)
 
         self.init_weight()
 
     def init_weight(self):
-        init_bn(self.bn0)
         init_layer(self.fc1)
-        init_layer(self.fc_openmic)
+        init_layer(self.fc_out)
 
     def forward(self, input, mixup_lambda=None):
         """
         Input: (batch_size, data_length)"""
 
         x = input[:, 0, :, :]
-        x = x.transpose(1, 3)
-        x = self.bn0(x)
-        x = x.transpose(1, 3)
 
         if self.training and self.spec_aug:
             x = self.spec_augmenter(x)
@@ -325,7 +321,7 @@ class Cnn6(nn.Module):
         x = F.dropout(x, p=0.5, training=self.training)
         x = F.relu_(self.fc1(x))
         embedding = F.dropout(x, p=0.5, training=self.training)
-        clipwise_output = torch.sigmoid(self.fc_openmic(x))
+        clipwise_output = torch.sigmoid(self.fc_out(x))
 
         output_dict = {"clipwise_output": clipwise_output, "embedding": embedding}
 
