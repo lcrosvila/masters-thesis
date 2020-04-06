@@ -17,7 +17,7 @@ def get_mean_var(processed_path):
     scatter_type = processed_path.split("/")[5]
     files = os.listdir(os.path.join(processed_path, "input/"))
 
-    if scatter_type == "logmel":
+    if scatter_type == "logmel" or scatter_type == 'logmel_reduced':
         logmel_list = []
 
         for file in files:
@@ -118,10 +118,12 @@ class medleyDataset(object):
             scatter = np.load(input_path, allow_pickle=True)
 
             order1 = scatter.item().get("order1")
-            order1 = (order1 - self.mean_order1) / self.var_order1
+            if self.mean_order1 != None:
+                order1 = (order1 - self.mean_order1) / self.var_order1
 
             order2 = scatter.item().get("order2")
-            order2 = (order2 - self.mean_order2) / self.var_order2
+            if self.mean_order2 != None:
+                order2 = (order2 - self.mean_order2) / self.var_order2
 
         data_dict = {
             "sample_name": sample_name,
@@ -178,7 +180,8 @@ class medleyDataset_logmel(object):
             target_path = os.path.join(self.path, "labels/" + file)
 
             logmel = np.load(logmel_path, allow_pickle=True)
-            logmel = (logmel - self.mean_logmel) / self.var_logmel
+            if self.mean_logmel != None:
+                logmel = (logmel - self.mean_logmel) / self.var_logmel
 
             target = np.load(target_path, allow_pickle=True)
             target = target.astype("float32")
