@@ -9,15 +9,29 @@ import logging
 import librosa
 import torch
 import matplotlib.pyplot as plt
+import random
+import numpy as np
 
 eps = sys.float_info.epsilon
 
 
-def get_mean_var(processed_path):
+def get_mean_var(processed_path, split):
     scatter_type = processed_path.split("/")[5]
-    files = os.listdir(os.path.join(processed_path, "input/"))
+    if split != 1:
+        if os.path.exists(
+            os.path.join(processed_path, str(round(split * 100)) + "_files_train.npy")
+        ):
+            files = np.load(
+                os.path.join(
+                    processed_path, str(round(split * 100)) + "_files_train.npy"
+                )
+            )
+        else:
+            files = decrease_samples(processed_path, split)
+    else:
+        files = os.listdir(os.path.join(processed_path, "input/"))
 
-    if scatter_type == "logmel" or scatter_type == 'logmel_reduced':
+    if scatter_type == "logmel" or scatter_type == "logmel_reduced":
         logmel_list = []
 
         for file in files:
@@ -64,6 +78,24 @@ def get_mean_var(processed_path):
         return mean_order1, var_order1, mean_order2, var_order2
 
 
+def decrease_samples(processed_path, split=1):
+    all_files_train = os.listdir(os.path.join(processed_path, "input/"))
+    random_seed = 4998
+
+    indices = [i for i in range(len(all_files_train))]
+    indices = random.sample(indices, len(all_files_train))
+    train_length = round(split * len(indices))
+
+    files_train = [all_files_train[idx] for idx in indices[:train_length]]
+
+    np.save(
+        os.path.join(processed_path, str(round(split * 100)) + "_files_train.npy"),
+        files_train,
+    )
+
+    return files_train
+
+
 class medleyDataset(object):
     def __init__(
         self,
@@ -76,6 +108,7 @@ class medleyDataset(object):
         var_order1,
         mean_order2,
         var_order2,
+        split=1,
     ):
         """Medley dataset for later used by DataLoader.  
         """
@@ -90,7 +123,22 @@ class medleyDataset(object):
         self.var_order2 = var_order2
 
         self.path = processed_path
-        self.files = os.listdir(os.path.join(processed_path, "input/"))
+
+        if split != 1:
+            if os.path.exists(
+                os.path.join(
+                    processed_path, str(round(split * 100)) + "_files_train.npy"
+                )
+            ):
+                self.files = np.load(
+                    os.path.join(
+                        processed_path, str(round(split * 100)) + "_files_train.npy"
+                    )
+                )
+            else:
+                self.files = decrease_samples(processed_path, split)
+        else:
+            self.files = os.listdir(os.path.join(processed_path, "input/"))
 
         logging.info("Scattering samples: {}".format(len(self.files)))
 
@@ -122,6 +170,7 @@ class medleyDataset(object):
                 order1 = (order1 - self.mean_order1) / self.var_order1
 
             order2 = scatter.item().get("order2")
+
             if self.mean_order2 != None:
                 order2 = (order2 - self.mean_order2) / self.var_order2
 
@@ -147,6 +196,7 @@ class medleyDataset_logmel(object):
         classes_num,
         mean_logmel,
         var_logmel,
+        split,
     ):
         """Medley dataset for later used by DataLoader.  
         """
@@ -158,7 +208,21 @@ class medleyDataset_logmel(object):
         self.var_logmel = var_logmel
 
         self.path = processed_path
-        self.files = os.listdir(os.path.join(processed_path, "input/"))
+        if split != 1:
+            if os.path.exists(
+                os.path.join(
+                    processed_path, str(round(split * 100)) + "_files_train.npy"
+                )
+            ):
+                self.files = np.load(
+                    os.path.join(
+                        processed_path, str(round(split * 100)) + "_files_train.npy"
+                    )
+                )
+            else:
+                self.files = decrease_samples(processed_path, split)
+        else:
+            self.files = os.listdir(os.path.join(processed_path, "input/"))
 
         logging.info("Scattering samples: {}".format(len(self.files)))
 
@@ -180,7 +244,8 @@ class medleyDataset_logmel(object):
             target_path = os.path.join(self.path, "labels/" + file)
 
             logmel = np.load(logmel_path, allow_pickle=True)
-            if self.mean_logmel != None:
+
+            if self.mean_logmel.all() != None:
                 logmel = (logmel - self.mean_logmel) / self.var_logmel
 
             target = np.load(target_path, allow_pickle=True)
