@@ -1,5 +1,4 @@
 import concurrent
-import multiprocessing
 import os
 
 import IPython.display as ipd
@@ -12,6 +11,8 @@ import pandas as pd
 import torch
 from kymatio import Scattering1D
 from tqdm import tqdm
+import multiprocessing as mp
+import math
 
 # Based off of OpenMICs taxonomy discussions and the MedleyDB taxonomy yaml
 OPENMIC_TO_MEDLEY = {
@@ -32,35 +33,31 @@ OPENMIC_TO_MEDLEY = {
         "female screamer",
     ],
     "piano": ["piano", "tack piano", "electric piano"],
-    "synthesizer": ["synthesizer"],
-    # "organ" : ["pipe organ", "electric organ"],
-    # "accordion" : ["accordion"],
-    # "banjo" : ["banjo"],
-    "cello": ["cello", "cello section"],
-    "clarinet": ["clarinet", "clarinet section", "bass clarinet"],
-    "cymbals": ["cymbal"],
-    "flute": [
-        "flute",
-        "dizi",
-        "flute",
-        "flute section",
-        "piccolo",
-        "bamboo flute",
-        "panpipes",
-        "recorder",
-    ],
-    "mallet_percussion": ["xylophone", "vibraphone", "glockenspiel", "marimba"],
-    "mandolin": ["mandolin"],
-    "saxophone": [
-        "alto saxophone",
-        "baritone saxophone",
-        "tenor saxophone",
-        "soprano saxophone",
-    ],
-    "trombone": ["trombone", "trombone section"],
-    "trumpet": ["trumpet", "trumpet section"],
-    # "ukulele" : ["ukulele"],
-    "violin": ["violin", "violin seciton"],
+    # "synthesizer": ["synthesizer"],
+    # "cello": ["cello", "cello section"],
+    # "clarinet": ["clarinet", "clarinet section", "bass clarinet"],
+    # "cymbals": ["cymbal"],
+    # "flute": [
+    #     "flute",
+    #     "dizi",
+    #     "flute",
+    #     "flute section",
+    #     "piccolo",
+    #     "bamboo flute",
+    #     "panpipes",
+    #     "recorder",
+    # ],
+    # "mallet_percussion": ["xylophone", "vibraphone", "glockenspiel", "marimba"],
+    # "mandolin": ["mandolin"],
+    # "saxophone": [
+    #     "alto saxophone",
+    #     "baritone saxophone",
+    #     "tenor saxophone",
+    #     "soprano saxophone",
+    # ],
+    # "trombone": ["trombone", "trombone section"],
+    # "trumpet": ["trumpet", "trumpet section"],
+    # "violin": ["violin", "violin seciton"],
 }
 
 INSTRUMENTS = OPENMIC_TO_MEDLEY.keys()
@@ -113,7 +110,9 @@ def preprocess_track(audio_file):
     iad_path = os.path.join(source_path, "%s_SOURCEID.lab" % track_id)
 
     # Top level directory will look like "J_Q_T"
-    spec_path = os.path.join(homedir, "MedleyDB/processed/%d_%d_%d/" % (J, Q, T))
+    spec_path = os.path.join(
+        homedir, "MedleyDB/processed/%d_%d_%d_reduced/" % (J, Q, T)
+    )
 
     input_path = os.path.join(spec_path, "input")
     label_path = os.path.join(spec_path, "labels")
@@ -182,27 +181,36 @@ def preprocess_label(iad_path, start_i, end_i):
     return instrument_annotations
 
 
-def f(t):
-    track_id = t.split("_MIX.wav")[0]
-    iad_path = os.path.join(source_path, "%s_SOURCEID.lab" % track_id)
+def f(files):
+    for t in tqdm(files, unit="track"):
+        track_id = t.split("_MIX.wav")[0]
+        iad_path = os.path.join(source_path, "%s_SOURCEID.lab" % track_id)
 
-    if os.path.exists(iad_path):
-        id_track = preprocess_track(t)
-        return id_track
-
-    else:
-        return None
+        if os.path.exists(iad_path):
+            id_track = preprocess_track(t)
 
 
-def preprocess_all_data():
-
-    all_files = os.listdir(audiodir)
-    # done_files_all = os.listdir('/home/laura/MedleyDB/processed/9_8_132300/input')
-    # done_files = [done_file.split('_')[0]+'_'+done_file.split('_')[1] for done_file in done_files_all]
-
-    for t in all_files:
-        f(t)
+def divide_chunks(l, n):
+    # looping till length l
+    for i in range(0, len(l), n):
+        yield l[i : i + n]
 
 
 if __name__ == "__main__":
-    preprocess_all_data()
+    processes = []
+    # num_cpu = mp.cpu_count()
+
+    all_files = os.listdir(audiodir)
+    f(all_files)
+    # all_files = list(divide_chunks(all_files, math.ceil(len(all_files) / num_cpu)))
+
+    """
+    for i in range(num_cpu):
+        p = mp.Process(target=f, args=(all_files[i],))
+        p.start()
+        processes.append(p)
+
+    for p in processes:
+        p.join()
+    """
+
