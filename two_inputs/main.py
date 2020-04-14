@@ -83,7 +83,7 @@ def evaluate(model, loader, scatter_type, loss_func, threshold):
 
 def f(split):
     standardize = True
-    scatter_type = "logmel_reduced"
+    scatter_type = str(sys.argv[2])
 
     train_dir = "/home/laura/MedleyDB/processed/" + scatter_type + "/train"
     val_dir = "/home/laura/MedleyDB/processed/" + scatter_type + "/val"
@@ -180,7 +180,7 @@ def f(split):
 
     train_loader = torch.utils.data.DataLoader(
         train_dataset,
-        batch_size=32,
+        batch_size=64,
         num_workers=os.cpu_count(),
         shuffle=True,
         drop_last=True,
@@ -218,10 +218,13 @@ def f(split):
     losses_val = []
     f1_val = []
     epoch = 0
+    weight_updates = 0
     threshold = 0.5
     min_loss_val = 10000
     directory_save = (
         "/home/laura/thesis/two_inputs/models/"
+        + str(sys.argv[1])
+        + "/"
         + scatter_type
         + "/"
         + str(round(split * 100))
@@ -231,7 +234,7 @@ def f(split):
 
     early_stop = False
     plot = False
-    dropout = True
+    dropout = False
 
     while not early_stop:
         running_loss = 0.0
@@ -241,7 +244,7 @@ def f(split):
             if "logmel" in scatter_type.split("_"):
                 batch_input = batch_data_dict["logmel"].cuda()
                 batch_target = batch_data_dict["target"].cuda()
-                batch_output_dict = model(batch_input)
+                batch_output_dict = model(batch_input, dropout)
             else:
                 batch_input1 = batch_data_dict["order1"].cuda()
                 batch_input2 = batch_data_dict["order2"].cuda()
@@ -259,6 +262,7 @@ def f(split):
             running_loss += loss.item() * train_loader.batch_size
 
             optimizer.step()
+            weight_updates += 1
             optimizer.zero_grad()
 
         epoch_loss = running_loss / len(train_dataset)
@@ -282,20 +286,23 @@ def f(split):
 
         if min_loss_val > val_loss:
             min_loss_val = val_loss
+            f1_instr_val = instrument_f1(batches_target, batches_pred)
             losses_test, batches_target_test, batches_pred_test = evaluate(
                 model, test_loader, scatter_type, loss_func, threshold
             )
-            f1_instr = instrument_f1(batches_target_test, batches_pred_test)
+            f1_instr_test = instrument_f1(batches_target_test, batches_pred_test)
             is_best = True
 
         save_checkpoint(
             {
                 "epoch": epoch + 1,
+                "weight_updates": weight_updates,
                 "state_dict": model.state_dict(),
                 "train_losses": losses_train,
                 "val_losses": losses_val,
                 "test_loss": losses_test,
-                "f1_instr_test": f1_instr,
+                "f1_instr_val": f1_instr_val,
+                "f1_instr_test": f1_instr_test,
                 "macro_f1_val": f1_val[np.argmin(losses_val)],
                 "split": split,
                 "optimizer": optimizer.state_dict(),
@@ -312,5 +319,5 @@ def f(split):
 if __name__ == "__main__":
     splits = [(i + 1) / 10 for i in range(10)]
 
-    for split in splits:
+    for split in splits[:2]:
         f(split)
