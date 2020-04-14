@@ -137,7 +137,7 @@ class CNN_two(nn.Module):
             in_channels=1, out_channels=64, kernel_size=(5, 5)
         )
 
-        channels1 = [32*2**(i+1) for i in range(depth1 - 1)]
+        channels1 = [32 * 2 ** (i + 1) for i in range(depth1 - 1)]
         # for i in range(len(channels1)):
         #     if channels1[i]>512:
         #         channels1[i]=512
@@ -149,7 +149,7 @@ class CNN_two(nn.Module):
                     out_channels=channels1[i + 1],
                     kernel_size=(5, 5),
                 )
-                for i in range(len(channels1)-1)
+                for i in range(len(channels1) - 1)
             ]
         )
 
@@ -157,7 +157,7 @@ class CNN_two(nn.Module):
             in_channels=1, out_channels=64, kernel_size=(1, 5)
         )
 
-        channels2 = [32*2**(i+1) for i in range(depth2 - 1)]
+        channels2 = [32 * 2 ** (i + 1) for i in range(depth2 - 1)]
         # for i in range(len(channels2)):
         #     if channels2[i]>512:
         #         channels2[i]=512
@@ -169,13 +169,11 @@ class CNN_two(nn.Module):
                     out_channels=channels2[i + 1],
                     kernel_size=(1, 5),
                 )
-                for i in range(len(channels2)-1)
+                for i in range(len(channels2) - 1)
             ]
         )
 
-        self.fc1 = nn.Linear(
-            channels1[-1] + channels2[-1], 256, bias=True
-        )
+        self.fc1 = nn.Linear(channels1[-1] + channels2[-1], 256, bias=True)
         self.fc_out = nn.Linear(256, classes_num, bias=True)
 
         self.init_weight()
@@ -198,7 +196,7 @@ class CNN_two(nn.Module):
             plt.imshow(x1[0, 0, :, :].cpu().detach().numpy(), aspect="auto")
             plt.show()
         x1 = self.conv_block1(x1, pool_size=(2, 2), pool_type="avg")
-        
+
         if dropout:
             x1 = F.dropout(x1, p=0.5, training=self.training)
 
@@ -250,12 +248,12 @@ class CNN_two(nn.Module):
         x2 = x21 + x22
 
         x = torch.cat((x1, x2), 1)
-        
+
         if dropout:
             x = F.dropout(x, p=0.5, training=self.training)
 
         embedding = F.relu(self.fc1(x))
-        
+
         if dropout:
             embedding = F.dropout(embedding, p=0.5, training=self.training)
 
@@ -273,7 +271,7 @@ class Cnn6(nn.Module):
 
         # Spec augmenter
         self.spec_aug = spec_aug
-        
+
         if self.spec_aug:
             self.spec_augmenter = SpecAugmentation(
                 time_drop_width=64,
@@ -296,7 +294,7 @@ class Cnn6(nn.Module):
         init_layer(self.fc1)
         init_layer(self.fc_out)
 
-    def forward(self, input, mixup_lambda=None):
+    def forward(self, input, dropout=False, mixup_lambda=None):
         """
         Input: (batch_size, data_length)"""
 
@@ -306,19 +304,24 @@ class Cnn6(nn.Module):
             x = self.spec_augmenter(x)
 
         x = self.conv_block1(x, pool_size=(2, 2), pool_type="avg")
-        x = F.dropout(x, p=0.2, training=self.training)
+        if dropout:
+            x = F.dropout(x, p=0.2, training=self.training)
         x = self.conv_block2(x, pool_size=(2, 2), pool_type="avg")
-        x = F.dropout(x, p=0.2, training=self.training)
+        if dropout:
+            x = F.dropout(x, p=0.2, training=self.training)
         x = self.conv_block3(x, pool_size=(2, 2), pool_type="avg")
-        x = F.dropout(x, p=0.2, training=self.training)
+        if dropout:
+            x = F.dropout(x, p=0.2, training=self.training)
         x = self.conv_block4(x, pool_size=(2, 2), pool_type="avg")
-        x = F.dropout(x, p=0.2, training=self.training)
+        if dropout:
+            x = F.dropout(x, p=0.2, training=self.training)
         x = torch.mean(x, dim=3)
 
         (x1, _) = torch.max(x, dim=2)
         x2 = torch.mean(x, dim=2)
         x = x1 + x2
-        x = F.dropout(x, p=0.5, training=self.training)
+        if dropout:
+            x = F.dropout(x, p=0.5, training=self.training)
         x = F.relu_(self.fc1(x))
         embedding = F.dropout(x, p=0.5, training=self.training)
         clipwise_output = torch.sigmoid(self.fc_out(x))
