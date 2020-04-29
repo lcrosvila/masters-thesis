@@ -82,6 +82,7 @@ def evaluate(model, loader, scatter_type, loss_func, threshold):
 
 
 def f(split):
+    print("Current split: ", split)
     standardize = True
     scatter_type = str(sys.argv[2])
 
@@ -90,14 +91,19 @@ def f(split):
     test_dir = "/home/laura/MedleyDB/processed/" + scatter_type + "/test"
 
     if "reduced" in scatter_type.split("_"):
+        print("5 instruments")
         classes_num = 5
     else:
+        print("16 instruments")
         classes_num = 16
 
     if "logmel" in scatter_type.split("_"):
+        print("Logmel data")
         if standardize:
+            print("Standardization")
             mean_logmel, var_logmel = get_mean_var(train_dir, split)
         else:
+            print("No standardization")
             mean_logmel, var_logmel = [None, None]
 
         time_steps = 827
@@ -120,6 +126,7 @@ def f(split):
         )
 
     else:
+        print("Scatter data")
         if "9_8_132300" in scatter_type.split("_reduced"):
             input_length = 259
             order1_length = 62
@@ -130,10 +137,12 @@ def f(split):
             order2_length = 87
 
         if standardize:
+            print("Standardization")
             mean_order1, var_order1, mean_order2, var_order2 = get_mean_var(
                 train_dir, split
             )
         else:
+            print("No standardization")
             mean_order1, var_order1, mean_order2, var_order2 = [
                 None,
                 None,
@@ -195,6 +204,7 @@ def f(split):
     )
 
     if "logmel" in scatter_type.split("_"):
+        print("Creating Cnn6 model")
         model = Cnn6(
             classes_num=classes_num,
             time_steps=time_steps,
@@ -202,6 +212,7 @@ def f(split):
             spec_aug=False,
         )
     else:
+        print("Creating CNN_two model")
         model = CNN_two(
             classes_num=classes_num,
             input_length=input_length,
@@ -220,7 +231,7 @@ def f(split):
     epoch = 0
     weight_updates = 0
     threshold = 0.5
-    min_loss_val = 10000
+
     directory_save = (
         "/home/laura/thesis/two_inputs/models/"
         + str(sys.argv[1])
@@ -234,7 +245,7 @@ def f(split):
 
     early_stop = False
     plot = False
-    dropout = False
+    dropout = True
 
     while not early_stop:
         running_loss = 0.0
@@ -284,8 +295,7 @@ def f(split):
         f1_score = macro_f1(batches_target, batches_pred)
         f1_val.append(f1_score)
 
-        if min_loss_val > val_loss:
-            min_loss_val = val_loss
+        if min(losses_val) == val_loss:
             f1_instr_val = instrument_f1(batches_target, batches_pred)
             losses_test, batches_target_test, batches_pred_test = evaluate(
                 model, test_loader, scatter_type, loss_func, threshold
@@ -317,7 +327,14 @@ def f(split):
 
 
 if __name__ == "__main__":
-    splits = [(i + 1) / 10 for i in range(10)]
+    splits = []
+    if len(sys.argv) > 3:
+        for i in range(3, len(sys.argv)):
+            splits.append(float(sys.argv[i]))
 
-    for split in splits[:2]:
+    else:
+        splits = [(i + 1) / 10 for i in range(10)]
+
+    print("Splits: ", splits)
+    for split in splits:
         f(split)

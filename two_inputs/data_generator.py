@@ -21,14 +21,22 @@ def get_mean_var(processed_path, split):
         if os.path.exists(
             os.path.join(processed_path, str(round(split * 100)) + "_files_train.npy")
         ):
+            print(
+                "file load mean var: ",
+                os.path.join(
+                    processed_path, str(round(split * 100)) + "_files_train.npy"
+                ),
+            )
             files = np.load(
                 os.path.join(
                     processed_path, str(round(split * 100)) + "_files_train.npy"
                 )
             )
+
         else:
             files = decrease_samples(processed_path, split)
     else:
+        print("file load mean var: ", os.path.join(processed_path, "input/"))
         files = os.listdir(os.path.join(processed_path, "input/"))
 
     if scatter_type == "logmel" or scatter_type == "logmel_reduced":
@@ -87,7 +95,7 @@ def decrease_samples(processed_path, split=1):
     train_length = round(split * len(indices))
 
     files_train = [all_files_train[idx] for idx in indices[:train_length]]
-
+    print("creates new npy file")
     np.save(
         os.path.join(processed_path, str(round(split * 100)) + "_files_train.npy"),
         files_train,
@@ -130,16 +138,27 @@ class medleyDataset(object):
                     processed_path, str(round(split * 100)) + "_files_train.npy"
                 )
             ):
+                print(
+                    "file load: ",
+                    os.path.join(
+                        processed_path, str(round(split * 100)) + "_files_train.npy"
+                    ),
+                )
                 self.files = np.load(
                     os.path.join(
                         processed_path, str(round(split * 100)) + "_files_train.npy"
                     )
                 )
             else:
+                print("there is something wrong")
                 self.files = decrease_samples(processed_path, split)
         else:
+            print(
+                "file load: ", os.path.join(processed_path, "input/"),
+            )
             self.files = os.listdir(os.path.join(processed_path, "input/"))
 
+        print("number of files: ", len(self.files))
         logging.info("Scattering samples: {}".format(len(self.files)))
 
     def __getitem__(self, index):
@@ -214,16 +233,27 @@ class medleyDataset_logmel(object):
                     processed_path, str(round(split * 100)) + "_files_train.npy"
                 )
             ):
+                print(
+                    "file load: ",
+                    os.path.join(
+                        processed_path, str(round(split * 100)) + "_files_train.npy"
+                    ),
+                )
                 self.files = np.load(
                     os.path.join(
                         processed_path, str(round(split * 100)) + "_files_train.npy"
                     )
                 )
             else:
+                print("there is something wrong")
                 self.files = decrease_samples(processed_path, split)
         else:
+            print(
+                "file load: ", os.path.join(processed_path, "input/"),
+            )
             self.files = os.listdir(os.path.join(processed_path, "input/"))
 
+        print("number of files: ", len(self.files))
         logging.info("Scattering samples: {}".format(len(self.files)))
 
     def __getitem__(self, index):
