@@ -13,6 +13,7 @@ from kymatio import Scattering1D
 from tqdm import tqdm
 import multiprocessing as mp
 import math
+import yaml
 
 # Based off of OpenMICs taxonomy discussions and the MedleyDB taxonomy yaml
 OPENMIC_TO_MEDLEY = {
@@ -61,12 +62,17 @@ OPENMIC_TO_MEDLEY = {
 }
 
 INSTRUMENTS = OPENMIC_TO_MEDLEY.keys()
+MEDLEYDB_INSTRUMENTS = [
+    item for sublist in OPENMIC_TO_MEDLEY.values() for item in sublist
+]
 INSTRUMENT_INDEX = {key: i for i, (key, _) in enumerate(OPENMIC_TO_MEDLEY.items())}
 MEDLEY_TO_OPENMIC = {v: k for k, v_list in OPENMIC_TO_MEDLEY.items() for v in v_list}
 MEDLEY_TO_INDEX = {k: INSTRUMENT_INDEX[v] for k, v in MEDLEY_TO_OPENMIC.items()}
 REV_INSTRUMENT_INDEX = {v: k for k, v in INSTRUMENT_INDEX.items()}
 
 homedir = os.path.expanduser("~")
+medleydir = os.path.join(homedir, "V1")
+
 audiodir = os.path.join(homedir, "MedleyDB/Audio/")
 source_path = os.path.join(homedir, "MedleyDB/Source_ID/")
 
@@ -105,13 +111,12 @@ def get_scattering_coefficients(x, order1_indices, order2_indices, forward):
     return out_dict
 
 
-def preprocess_track(audio_file):
-    track_id = audio_file.split("_MIX.wav")[0]
+def preprocess_track(track_id):
     iad_path = os.path.join(source_path, "%s_SOURCEID.lab" % track_id)
 
     # the directory looks like "J_Q_T_reduced"
     spec_path = os.path.join(
-        homedir, "MedleyDB/processed/%d_%d_%d_reduced/" % (J, Q, T)
+        homedir, "MedleyDB/processed/%d_%d_%d_reduced_new/" % (J, Q, T)
     )
 
     input_path = os.path.join(spec_path, "input")
@@ -122,9 +127,40 @@ def preprocess_track(audio_file):
     if not (os.path.exists(label_path)):
         os.makedirs(label_path)
 
-    # load audio
-    y, _ = librosa.load(
-        os.path.join(audiodir, audio_file), sr=sr, res_type="kaiser_fast"
+    # load audio list
+
+    # y, _ = librosa.load(
+    #     os.path.join(audiodir, audio_file), sr=sr, res_type="kaiser_fast"
+    # )
+
+    meta_file = (
+        "/home/laura/medleydb/medleydb/data/Metadata/" + track_id + "_METADATA.yaml"
+    )
+
+    with open(meta_file) as f:
+        data = yaml.load(f)
+
+    stems_files = [
+        stem["filename"]
+        for stem in data["stems"].values()
+        if stem["instrument"] in MEDLEYDB_INSTRUMENTS
+    ]
+
+    if stems_files == []:
+        return track_id
+
+    y = np.mean(
+        np.stack(
+            [
+                librosa.load(
+                    os.path.join(medleydir, track_id, track_id + "_STEMS", audio_file),
+                    sr=sr,
+                    res_type="kaiser_fast",
+                )[0]
+                for audio_file in stems_files
+            ],
+        ),
+        axis=0,
     )
 
     # get the non-silent intervals
@@ -186,12 +222,11 @@ def preprocess_label(iad_path, start_i, end_i):
 
 
 def f(files):
-    for t in tqdm(files, unit="track"):
-        track_id = t.split("_MIX.wav")[0]
+    for track_id in tqdm(files, unit="track"):
         iad_path = os.path.join(source_path, "%s_SOURCEID.lab" % track_id)
 
         if os.path.exists(iad_path):
-            id_track = preprocess_track(t)
+            id_track = preprocess_track(track_id)
 
 
 def divide_chunks(l, n):
@@ -204,8 +239,11 @@ if __name__ == "__main__":
     processes = []
     # num_cpu = mp.cpu_count()
 
-    all_files = os.listdir(audiodir)
-    f(all_files)
+    ids = os.listdir(medleydir)
+    f(ids)
+
+    # all_files = os.listdir(audiodir)
+    # f(all_files)
     # all_files = list(divide_chunks(all_files, math.ceil(len(all_files) / num_cpu)))
 
     """
