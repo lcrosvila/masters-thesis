@@ -9,6 +9,7 @@ from stft import Spectrogram, LogmelFilterBank
 import multiprocessing as mp
 import math
 from tqdm import tqdm
+import shutil
 
 sample_rate = 22050
 window_size = 400
@@ -71,15 +72,16 @@ scatter_type = "9_8_132300_reduced"
 scatter_path = "/home/laura/MedleyDB/processed/" + scatter_type
 logmel_path = "/home/laura/MedleyDB/processed/logmel_reduced"
 
-if not os.path.exists("/home/laura/MedleyDB/processed/logmel_reduced/input/"):
-    os.mkdir("/home/laura/MedleyDB/processed/logmel_reduced/input/")
-
-if not os.path.exists("/home/laura/MedleyDB/processed/logmel_reduced/labels/"):
-    os.mkdir("/home/laura/MedleyDB/processed/logmel_reduced/labels/")
-
+scatter_labels = os.path.join(scatter_path, "labels")
 
 def f(files):
-    save_path = os.path.join(logmel_path, "input")
+    input_path = os.path.join(logmel_path, "input")
+    label_path = os.path.join(logmel_path, "labels")
+
+    if not os.path.exists(input_path):
+        os.mkdir(input_path)
+    if not os.path.exists(label_path):
+        os.mkdir(label_path)
 
     for file in tqdm(files):
         sample_name = file[:-4]
@@ -97,7 +99,8 @@ def f(files):
 
         logmel = get_logmel(waveform)
 
-        np.save(os.path.join(save_path, file), logmel)
+        np.save(os.path.join(input_path, file), logmel)
+        shutil.copy2(os.path.join(scatter_labels, file), label_path)
 
 
 def divide_chunks(l, n):

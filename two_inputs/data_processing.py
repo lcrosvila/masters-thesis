@@ -70,6 +70,18 @@ homedir = os.path.expanduser("~")
 audiodir = os.path.join(homedir, "MedleyDB/Audio/")
 source_path = os.path.join(homedir, "MedleyDB/Source_ID/")
 
+sr = 22050  # sampling rate
+snippet_len = 6  # 6s long snippets
+samples_per_snippet = int(sr * snippet_len)
+T = samples_per_snippet
+J = 9
+Q = 8
+meta = Scattering1D.compute_meta_scattering(J, Q)
+order1_indices = meta["order"] == 1
+order2_indices = meta["order"] == 2
+
+scattering = Scattering1D(J, T, Q)
+
 
 def preprocess(x):
     # normalize raw numpy array then convert it to torch tensor
@@ -80,6 +92,7 @@ def preprocess(x):
 
 
 def get_scattering_coefficients(x, order1_indices, order2_indices, forward):
+    # get first and second order coefficients in a dictionary
     out_dict = {}
 
     Sx = forward(x)
@@ -92,24 +105,11 @@ def get_scattering_coefficients(x, order1_indices, order2_indices, forward):
     return out_dict
 
 
-sr = 22050
-snippet_len = 6
-samples_per_snippet = int(sr * snippet_len)
-T = samples_per_snippet
-J = 9
-Q = 8
-meta = Scattering1D.compute_meta_scattering(J, Q)
-order1_indices = meta["order"] == 1
-order2_indices = meta["order"] == 2
-
-scattering = Scattering1D(J, T, Q)
-
-
 def preprocess_track(audio_file):
     track_id = audio_file.split("_MIX.wav")[0]
     iad_path = os.path.join(source_path, "%s_SOURCEID.lab" % track_id)
 
-    # Top level directory will look like "J_Q_T"
+    # the directory looks like "J_Q_T_reduced"
     spec_path = os.path.join(
         homedir, "MedleyDB/processed/%d_%d_%d_reduced/" % (J, Q, T)
     )
@@ -122,10 +122,12 @@ def preprocess_track(audio_file):
     if not (os.path.exists(label_path)):
         os.makedirs(label_path)
 
+    # load audio
     y, _ = librosa.load(
         os.path.join(audiodir, audio_file), sr=sr, res_type="kaiser_fast"
     )
 
+    # get the non-silent intervals
     intervals = split(
         y, top_db=10, frame_length=samples_per_snippet, hop_length=samples_per_snippet
     )
@@ -133,6 +135,7 @@ def preprocess_track(audio_file):
     for start_i, end_i in intervals:
         for i in tqdm(range(start_i, end_i, samples_per_snippet), unit="clip"):
             sound_bite = y[i : i + samples_per_snippet]
+            # get all sound_bites except the last one (which is not 6s long)
             if len(sound_bite) == samples_per_snippet:
                 sound_bite = preprocess(sound_bite)
 
@@ -158,6 +161,7 @@ def preprocess_label(iad_path, start_i, end_i):
     instrument_annotations = np.zeros(len(INSTRUMENTS))
     annotations = pd.read_csv(iad_path)
     for _, row in annotations.iterrows():
+        # check which instrumetn it is in the openmic setting (instead of medley)
         if row["instrument_label"] in MEDLEY_TO_OPENMIC.keys():
             instrument = MEDLEY_TO_OPENMIC[row["instrument_label"]]
         else:
@@ -213,4 +217,3 @@ if __name__ == "__main__":
     for p in processes:
         p.join()
     """
-
