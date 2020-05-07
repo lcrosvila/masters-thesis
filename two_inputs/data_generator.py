@@ -39,7 +39,7 @@ def get_mean_var(processed_path, split):
         print("file load mean var: ", os.path.join(processed_path, "input/"))
         files = os.listdir(os.path.join(processed_path, "input/"))
 
-    if scatter_type == "logmel" or scatter_type == "logmel_reduced":
+    if "logmel" in scatter_type.split("_"):
         logmel_list = []
 
         for file in files:
